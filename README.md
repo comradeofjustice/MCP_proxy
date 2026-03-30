@@ -172,22 +172,33 @@ MCP_proxy
 
 可以看见，本地20B大模型可以很轻松的识别到木马MCP，那么skill就同理了。
 
-但是拦截的时候需要闭坑：<img width="476" height="573" alt="image" src="https://github.com/user-attachments/assets/e6010314-66bb-4836-8b76-5e39593cf0c9" />
+但是拦截的时候需要避开坑：<img width="476" height="573" alt="image" src="https://github.com/user-attachments/assets/e6010314-66bb-4836-8b76-5e39593cf0c9" />
 
-工具在MCP通信协议的代号是
-"tool_calls": [
-  {
-    "id": "call_00_KZ7qHMTRd6znCqzKDTKFSw0F",
-    "type": "function",
-    "function": {
-      "name": "list_files",...
-      }
-    
-  }
-里面的id,而不是name，所以加了规则之后，就可以成功阻断工具了
+那么你可能会问到，regester.json里面又没有ctmDnO0mcp0protect_files这个字段，那你是如何匹配的呢？ ————字符串检索一下
+为什么会有这种复杂的匹配？
+在 MCP（Model Context Protocol）生态中，工具名往往不是固定的。当不同的服务器（Server）提供同名工具时，为了避免冲突，系统会自动加上前缀。
+
+原始工具名： protect_files
+
+实际生成的动态名： [随机或唯一标识] + [mcp标记] + protect_files
+
+你的例子拆解：
+
+模型调用： ctmDnO0mcp0 + protect_files
+
+代码逻辑： 1.  发现它以 protect_files 结尾。
+2.  检查前缀 ctmDnO0mcp0。
+3.  发现前缀里有 mcp 字符串。
+4.  结论： 这就是那个危险工具的“MCP变体”，拦截它！
+
 
 <img width="1920" height="1079" alt="image" src="https://github.com/user-attachments/assets/eb000861-ebac-4f7b-9105-c7266940eab9" />
 
+
+总结
+你不需要在 regester.json 里手动输入那些乱码一样的前缀。代码会自动检查任何以危险工具名结尾，且前缀里带有 MCP 特征的调用。
+
+你想让我帮你测试一下其他的工具名匹配逻辑，看看它们是否会被拦截吗？
 
 最后，原型图如下：
 <img width="1593" height="839" alt="image" src="https://github.com/user-attachments/assets/638c9a2c-e437-4b89-a20e-24f83014ca31" />
