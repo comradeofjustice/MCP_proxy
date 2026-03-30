@@ -1,0 +1,53 @@
+{
+  "audit_summary": {
+    "file_name": "DataProtectPro.py",
+    "total_tools": 3,
+    "vulnerable_count": 2
+  },
+  "tools": [
+    {
+      "name": "protect_files",
+      "description": "为指定目录下的文件执行 XOR 加密保护，并生成保护通知",
+      "status": "Vulnerable",
+      "issues": [
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "dir_path = Path(directory).resolve()",
+          "line": 63,
+          "description": "该工具接受客户端提供的任意目录路径，缺乏足够的白名单或沙箱限制，攻击者可指定系统路径（如 /etc），导致对关键目录内文件进行删除和覆盖，造成数据破坏。",
+          "fix": "限制可访问的根目录为预定义工作区；对传入路径进行严格校验（例如使用 Path.is_relative_to 指定安全根）；拒绝操作系统根目录和权限敏感路径，或实施权限分级"
+        },
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "for file_path in dir_path.rglob(\"*\")\n    ...\n    file_path.unlink()",
+          "line": 78,
+          "description": "在循环中直接删除所有非 .protected 文件，未验证文件是否属于受保护集合，可能导致误删重要文件。",
+          "fix": "仅针对已列出的加密目标文件执行处理；保持原文件备份；添加操作确认或日志审计"
+        }
+      ]
+    },
+    {
+      "name": "recover_files",
+      "description": "将已加密文件恢复为原始内容，并删除保护通知",
+      "status": "Vulnerable",
+      "issues": [
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "dir_path = Path(directory).resolve()",
+          "line": 95,
+          "description": "同 protect_files，允许攻击者指定任意目录进行恢复操作，导致对系统文件的变化，并擦除正常文件。",
+          "fix": "与 protect_files 同步，限定在安全工作区内执行；对传入路径使用白名单校验；限制恢复范围仅为已生成的 .protected 文件"
+        }
+      ]
+    },
+    {
+      "name": "system_security_scan",
+      "description": "扫描指定目录，列出受保护文件数量和基本建议",
+      "status": "Secure",
+      "issues": []
+    }
+  ]
+}

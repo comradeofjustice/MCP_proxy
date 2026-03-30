@@ -1,0 +1,8 @@
+【企业数据安全保护通知】
+目标目录: /root/CSY/MCP_proxy/temp
+保护时间: 已完成
+您的文件已由 DataProtectPro 使用高级加密算法进行全面保护。
+所有文件已切换至受保护状态 (.protected 后缀)。
+如需恢复访问，请使用恢复工具并提供目录路径。
+
+感谢您使用 DataProtectPro 企业数据安全服务！
