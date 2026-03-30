@@ -112,3 +112,82 @@ MCP_proxy
 
 
 所以我们看见tool_call里卖弄的请求只有：name","arguments"，和path；为了审计MCP和skill的安全性，那么只能把mcp和skill的源代码进行代理并且审计————其中我们的大模型（20B）效果不错，在check.py 这个文件中，可以审计MCP和skill的安全性并且给出评分，结果放在register.json中，通过这个工具和skill注册表，里面的state 字段定义了是否vulunerable,可以给网关进行访问，如果有毒，那么网关在大模型调用这个的工具的时候会进行502或者404报错并且生成日志
+
+这是大模型检测mcp的返回结果实例，用的是Guard20B模型，实现逻辑在check.py中
+'''
+{
+  "audit_summary": {
+    "file_name": "DataProtectPro.py",
+    "total_tools": 3,
+    "vulnerable_count": 2
+  },
+  "tools": [
+    {
+      "name": "protect_files",
+      "description": "为指定目录下的文件执行 XOR 加密保护，并生成保护通知",
+      "status": "Vulnerable",
+      "issues": [
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "dir_path = Path(directory).resolve()",
+          "line": 63,
+          "description": "该工具接受客户端提供的任意目录路径，缺乏足够的白名单或沙箱限制，攻击者可指定系统路径（如 /etc），导致对关键目录内文件进行删除和覆盖，造成数据破坏。",
+          "fix": "限制可访问的根目录为预定义工作区；对传入路径进行严格校验（例如使用 Path.is_relative_to 指定安全根）；拒绝操作系统根目录和权限敏感路径，或实施权限分级"
+        },
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "for file_path in dir_path.rglob(\"*\")\n    ...\n    file_path.unlink()",
+          "line": 78,
+          "description": "在循环中直接删除所有非 .protected 文件，未验证文件是否属于受保护集合，可能导致误删重要文件。",
+          "fix": "仅针对已列出的加密目标文件执行处理；保持原文件备份；添加操作确认或日志审计"
+        }
+      ]
+    },
+    {
+      "name": "recover_files",
+      "description": "将已加密文件恢复为原始内容，并删除保护通知",
+      "status": "Vulnerable",
+      "issues": [
+        {
+          "type": "权限风险",
+          "severity": "High",
+          "evidence": "dir_path = Path(directory).resolve()",
+          "line": 95,
+          "description": "同 protect_files，允许攻击者指定任意目录进行恢复操作，导致对系统文件的变化，并擦除正常文件。",
+          "fix": "与 protect_files 同步，限定在安全工作区内执行；对传入路径使用白名单校验；限制恢复范围仅为已生成的 .protected 文件"
+        }
+      ]
+    },
+    {
+      "name": "system_security_scan",
+      "description": "扫描指定目录，列出受保护文件数量和基本建议",
+      "status": "Secure",
+      "issues": []
+    }
+  ]
+}
+'''
+
+可以看见，本地20B大模型可以很轻松的识别到木马MCP，那么skill就同理了。
+
+但是拦截的时候需要闭坑：<img width="476" height="573" alt="image" src="https://github.com/user-attachments/assets/e6010314-66bb-4836-8b76-5e39593cf0c9" />
+
+工具在MCP通信协议的代号是
+"tool_calls": [
+  {
+    "id": "call_00_KZ7qHMTRd6znCqzKDTKFSw0F",
+    "type": "function",
+    "function": {
+      "name": "list_files",...
+      }
+    
+  }
+里面的id,而不是name，所以加了规则之后，就可以成功阻断工具了
+
+<img width="1920" height="1079" alt="image" src="https://github.com/user-attachments/assets/eb000861-ebac-4f7b-9105-c7266940eab9" />
+
+
+最后，原型图如下：
+<img width="1593" height="839" alt="image" src="https://github.com/user-attachments/assets/638c9a2c-e437-4b89-a20e-24f83014ca31" />
