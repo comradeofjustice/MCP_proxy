@@ -1,13 +1,21 @@
+# .gitignore
+
+# 环境变量
 .env
-temp/*
-MCP_Severs/*
-__pycache__/*
+
+# 临时文件和目录
+temp/
+__pycache__/
+
+# 特定目录
+MCP_Severs/
+
+# 特定文件类型
+*.pen
+*.db
+*.sql
+*.json
+
+# 特定脚本
 check.py
-pencil-new copy.pen 
-pencil-new.pen
-protogpt5.pen
-prototype.pen
 proxy.py
-regesiter.sql
-regesiter.json
-regesiter.db
