@@ -1,4 +1,30 @@
 # MCP_proxy
+
+对于新版本V2，只检测proxy和mcp之间的流量
+
+<img width="1052" height="544" alt="image" src="https://github.com/user-attachments/assets/81fcc323-112d-411f-9d56-b7dcea5accac" />
+
+其中proxy2.py的@app.post("/mcp")中的
+'''
+ # LLM 意图检测
+        check_result = call_llm_for_check(json.dumps({
+            "tool": tool_name,
+            "arguments": arguments
+        }, ensure_ascii=False))
+'''
+是主要检测逻辑， call_llm_for_check函数放在check2.py里面
+
+另外也支持黑名单功能，在blacklist.py 函数中
+
+proxy2.py 也代理了远程的MCP服务器，相当于转发
+在mcp_call.log中记录了大模型判别的结果和网关的操作逻辑，拦截理由
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/46df9acf-b7c7-4bf5-ade2-885288378bfc" />
+生产环境中，需要把perfix为00mcp000_[tool_name](类似的前缀)以及{command,path}，这样的流量抓出来，丢给大模型分析，
+
+
+
+
+
 MCP_proxy
 <img width="2504" height="1546" alt="MCP_proxy" src="https://github.com/user-attachments/assets/1757fbba-6d5b-455f-9fae-a3b8754104ec" />
 我们可以看到MCP和skill的本质其实是一样的，其中，mcp是首先在本地或者远程启动一个服务器（nodejs或者python居多），然后给client（用户端）一个调用的schema（json），并且在Client和模型交互的界面中，去把schema和mcp的描述放入上下文中，使得大模型能够告诉client端，此次的操作要不要调用mcp，以及调用哪些mcp，如下：
