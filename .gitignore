@@ -1,1 +1,13 @@
 .env
+temp/*
+MCP_Severs/*
+__pycache__/*
+check.py
+pencil-new copy.pen 
+pencil-new.pen
+protogpt5.pen
+prototype.pen
+proxy.py
+regesiter.sql
+regesiter.json
+regesiter.db

@@ -14,7 +14,7 @@ def chat_with_proxy(prompt, stream=True):
         headers["Authorization"] = f"Bearer {PROXY_TOKEN}"
 
     payload = {
-        "model": "deepseek-chat", # 这里的 model 取决于 DeepSeek 允许的值
+        "model": "deepseek-chat", # 这里的 model 取决于你的本地 LLM 服务
         "messages": [
             {"role": "user", "content": prompt}
         ],
@@ -35,8 +35,12 @@ def chat_with_proxy(prompt, stream=True):
                     print("代理返回: ", end="", flush=True)
                     for line in r.iter_lines():
                         if line:
-                            # 过滤掉 SSE 的 'data: ' 前缀以提取内容 (简单处理)
-                            print(line, flush=True) 
+                            content = parse_sse_line(line)
+                            if content is None:  # 表示 [DONE]
+                                break
+                            elif content:
+                                print(content, end="", flush=True)
+                    print()  # 换行
             else:
                 # 普通请求处理
                 response = client.post(PROXY_URL, json=payload, headers=headers)
@@ -47,6 +51,22 @@ def chat_with_proxy(prompt, stream=True):
                     
     except Exception as e:
         print(f"连接代理失败: {e}")
+
+def parse_sse_line(line: str):
+    """解析SSE行，提取内容"""
+    if line.startswith("data: "):
+        data = line[6:]  # 移除 "data: " 前缀
+        if data.strip() == "[DONE]":
+            return None
+        try:
+            parsed = json.loads(data)
+            if "choices" in parsed and len(parsed["choices"]) > 0:
+                delta = parsed["choices"][0].get("delta", {})
+                content = delta.get("content", "")
+                return content
+        except json.JSONDecodeError:
+            pass
+    return ""
 
 if __name__ == "__main__":
     user_input = input("请输入你想问的问题: ")
